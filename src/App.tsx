@@ -19,13 +19,14 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Specific routes FIRST */}
           <Route path="/" element={<Landing />} />
           <Route path="/create" element={<CreatePortfolio />} />
-          <Route path="/portfolio/:username" element={<PortfolioView />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          
+          {/* Catch-all for usernames LAST */}
+          <Route path="/:username" element={<PortfolioView />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

@@ -44,7 +44,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'http://localhost:8080',
     credentials: true,
   })
 );
@@ -126,8 +126,8 @@ app.get('/api/discord/callback', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    // Redirect to frontend
-    res.redirect(FRONTEND_URL);
+    // Redirect to create page
+    res.redirect(`${FRONTEND_URL}/create`);
   } catch (error) {
     console.error('Callback error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -197,25 +197,30 @@ app.get('/api/github/connect', (req, res) => {
     return res.status(500).json({ error: 'GitHub OAuth not configured' });
   }
 
+  // Get return_to from query (default: 'settings')
+  const returnTo = req.query.return_to || 'settings';
+
   const githubAuthUrl = new URL('https://github.com/login/oauth/authorize');
   githubAuthUrl.searchParams.append('client_id', GITHUB_CLIENT_ID);
   githubAuthUrl.searchParams.append('redirect_uri', GITHUB_REDIRECT_URI);
   githubAuthUrl.searchParams.append('scope', 'read:user');
+  githubAuthUrl.searchParams.append('state', returnTo); // Pass redirect destination
 
   res.redirect(githubAuthUrl.toString());
 });
 
 // GET /api/github/callback - Exchange code for token and save username
 app.get('/api/github/callback', async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
   const discordToken = req.cookies.discord_token;
+  const returnTo = state || 'settings'; // Default to settings if no state
 
   if (!discordToken) {
-    return res.redirect(`${FRONTEND_URL}/settings?error=not_authenticated`);
+    return res.redirect(`${FRONTEND_URL}/${returnTo}?error=not_authenticated`);
   }
 
   if (!code) {
-    return res.redirect(`${FRONTEND_URL}/settings?error=no_code`);
+    return res.redirect(`${FRONTEND_URL}/${returnTo}?error=no_code`);
   }
 
   try {
@@ -236,14 +241,14 @@ app.get('/api/github/callback', async (req, res) => {
 
     if (!tokenResponse.ok) {
       console.error('GitHub token exchange failed');
-      return res.redirect(`${FRONTEND_URL}/settings?error=token_exchange_failed`);
+      return res.redirect(`${FRONTEND_URL}/${returnTo}?error=token_exchange_failed`);
     }
 
     const tokenData = await tokenResponse.json();
     const { access_token } = tokenData;
 
     if (!access_token) {
-      return res.redirect(`${FRONTEND_URL}/settings?error=no_access_token`);
+      return res.redirect(`${FRONTEND_URL}/${returnTo}?error=no_access_token`);
     }
 
     // Fetch GitHub user data
@@ -255,7 +260,7 @@ app.get('/api/github/callback', async (req, res) => {
     });
 
     if (!userResponse.ok) {
-      return res.redirect(`${FRONTEND_URL}/settings?error=github_user_fetch_failed`);
+      return res.redirect(`${FRONTEND_URL}/${returnTo}?error=github_user_fetch_failed`);
     }
 
     const githubUser = await userResponse.json();
@@ -266,7 +271,7 @@ app.get('/api/github/callback', async (req, res) => {
     });
 
     if (!discordResponse.ok) {
-      return res.redirect(`${FRONTEND_URL}/settings?error=discord_auth_failed`);
+      return res.redirect(`${FRONTEND_URL}/${returnTo}?error=discord_auth_failed`);
     }
 
     const discordUser = await discordResponse.json();
@@ -282,11 +287,11 @@ app.get('/api/github/callback', async (req, res) => {
     };
     saveProfiles(profiles);
 
-    // Redirect back to settings with success
-    res.redirect(`${FRONTEND_URL}/settings?github_connected=true`);
+    // Redirect back to original page with success
+    res.redirect(`${FRONTEND_URL}/${returnTo}?github_connected=true`);
   } catch (error) {
     console.error('GitHub callback error:', error);
-    res.redirect(`${FRONTEND_URL}/settings?error=unknown`);
+    res.redirect(`${FRONTEND_URL}/${returnTo}?error=unknown`);
   }
 });
 
@@ -366,49 +371,170 @@ app.post('/api/profile', async (req, res) => {
 });
 
 // ============================================================
-// PORTFOLIO ENDPOINTS (in-memory storage)
+// PORTFOLIO ENDPOINTS (persistent storage)
 // ============================================================
-const portfolios = new Map();
+const PORTFOLIOS_FILE = path.join(__dirname, 'portfolios.json');
 
-// POST /api/portfolio — create a portfolio
-app.post('/api/portfolio', (req, res) => {
-  const { username, bio, accentColor, avatarUrl } = req.body;
+// Load portfolios from file
+function loadPortfolios() {
+  try {
+    if (fs.existsSync(PORTFOLIOS_FILE)) {
+      const data = fs.readFileSync(PORTFOLIOS_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error loading portfolios:', error);
+  }
+  return {};
+}
 
-  if (!username || typeof username !== 'string') {
-    return res.status(400).json({ error: 'Username is required' });
+// Save portfolios to file
+function savePortfolios(portfolios) {
+  try {
+    fs.writeFileSync(PORTFOLIOS_FILE, JSON.stringify(portfolios, null, 2));
+  } catch (error) {
+    console.error('Error saving portfolios:', error);
+  }
+}
+
+// Validation regex
+const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,20}$/;
+const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
+
+// POST /api/portfolios — create a portfolio
+app.post('/api/portfolios', (req, res) => {
+  console.log('POST /api/portfolios - Request body:', req.body);
+  
+  const { username, bio, accentColor, avatarUrl, githubUsername } = req.body;
+
+  // Validate username
+  if (!username || !USERNAME_REGEX.test(username)) {
+    console.log('Validation failed: username');
+    return res.status(400).json({ 
+      error: 'Username must be 3-20 characters (letters, numbers, _, -)' 
+    });
   }
 
-  const trimmed = username.trim();
-  if (trimmed.length === 0 || trimmed.length > 32) {
-    return res.status(400).json({ error: 'Username must be 1-32 characters' });
+  // Validate bio
+  if (bio && bio.length > 160) {
+    console.log('Validation failed: bio too long');
+    return res.status(400).json({ 
+      error: 'Bio must be max 160 characters' 
+    });
   }
 
-  if (portfolios.has(trimmed.toLowerCase())) {
-    return res.status(409).json({ error: 'Username already taken' });
+  // Validate color
+  if (accentColor && !HEX_COLOR_REGEX.test(accentColor)) {
+    console.log('Validation failed: accentColor');
+    return res.status(400).json({ 
+      error: 'Accent color must be valid hex (#RRGGBB)' 
+    });
   }
 
-  const portfolio = {
-    username: trimmed,
-    bio: typeof bio === 'string' ? bio.slice(0, 200) : '',
-    accentColor: typeof accentColor === 'string' ? accentColor.slice(0, 9) : '#9082FA',
-    avatarUrl: typeof avatarUrl === 'string' ? avatarUrl.slice(0, 500) : undefined,
-    createdAt: new Date().toISOString(),
-  };
+  try {
+    const portfolios = loadPortfolios();
+    const key = username.toLowerCase();
 
-  portfolios.set(trimmed.toLowerCase(), portfolio);
-  res.status(201).json(portfolio);
+    // Check if username exists
+    if (portfolios[key]) {
+      console.log('Portfolio already exists:', key);
+      return res.status(409).json({ error: 'Username already taken' });
+    }
+
+    // Create portfolio
+    const portfolio = {
+      username,
+      bio: bio || '',
+      accentColor: accentColor || '#9082FA',
+      avatarUrl: avatarUrl || '',
+      githubUsername: githubUsername || '',
+      discordConnected: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    portfolios[key] = portfolio;
+    savePortfolios(portfolios);
+
+    console.log('✅ Portfolio created:', username);
+    res.status(201).json({ 
+      message: 'Portfolio created successfully',
+      username 
+    });
+  } catch (error) {
+    console.error('❌ Error creating portfolio:', error);
+    res.status(500).json({ error: 'Failed to create portfolio: ' + error.message });
+  }
 });
 
-// GET /api/portfolio/:username — read a portfolio
-app.get('/api/portfolio/:username', (req, res) => {
-  const key = req.params.username.toLowerCase();
-  const portfolio = portfolios.get(key);
+// GET /api/portfolios/:username — read a portfolio
+app.get('/api/portfolios/:username', (req, res) => {
+  const { username } = req.params;
+  console.log('GET /api/portfolios/:username -', username);
 
-  if (!portfolio) {
-    return res.status(404).json({ error: 'Portfolio not found' });
+  try {
+    const portfolios = loadPortfolios();
+    const key = username.toLowerCase();
+    const portfolio = portfolios[key];
+    
+    if (!portfolio) {
+      console.log('❌ Portfolio not found:', username);
+      return res.status(404).json({ error: 'Portfolio not found' });
+    }
+
+    console.log('✅ Portfolio found:', username);
+    res.json(portfolio);
+  } catch (error) {
+    console.error('❌ Error fetching portfolio:', error);
+    res.status(500).json({ error: 'Failed to fetch portfolio: ' + error.message });
+  }
+});
+
+// PUT /api/portfolios/:username — update a portfolio
+app.put('/api/portfolios/:username', (req, res) => {
+  const { username } = req.params;
+  const { bio, accentColor, avatarUrl, githubUsername } = req.body;
+  console.log('PUT /api/portfolios/:username -', username);
+
+  // Validate bio
+  if (bio && bio.length > 160) {
+    return res.status(400).json({ 
+      error: 'Bio must be max 160 characters' 
+    });
   }
 
-  res.json(portfolio);
+  // Validate color
+  if (accentColor && !HEX_COLOR_REGEX.test(accentColor)) {
+    return res.status(400).json({ 
+      error: 'Accent color must be valid hex (#RRGGBB)' 
+    });
+  }
+
+  try {
+    const portfolios = loadPortfolios();
+    const key = username.toLowerCase();
+    
+    if (!portfolios[key]) {
+      return res.status(404).json({ error: 'Portfolio not found' });
+    }
+
+    // Update portfolio
+    portfolios[key] = {
+      ...portfolios[key],
+      bio: bio !== undefined ? bio : portfolios[key].bio,
+      accentColor: accentColor || portfolios[key].accentColor,
+      avatarUrl: avatarUrl !== undefined ? avatarUrl : portfolios[key].avatarUrl,
+      githubUsername: githubUsername !== undefined ? githubUsername : portfolios[key].githubUsername,
+      updatedAt: new Date().toISOString(),
+    };
+
+    savePortfolios(portfolios);
+    console.log('✅ Portfolio updated:', username);
+    res.json({ message: 'Portfolio updated successfully' });
+  } catch (error) {
+    console.error('❌ Error updating portfolio:', error);
+    res.status(500).json({ error: 'Failed to update portfolio: ' + error.message });
+  }
 });
 
 // Health check

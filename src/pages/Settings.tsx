@@ -73,7 +73,7 @@ export default function Settings() {
   }
 
   const connectGitHub = () => {
-    window.location.href = `${BACKEND_URL}/api/github/connect`;
+    window.location.href = `${BACKEND_URL}/api/github/connect?return_to=settings`;
   };
 
   return (
