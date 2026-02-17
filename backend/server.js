@@ -405,7 +405,7 @@ const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
 app.post('/api/portfolios', (req, res) => {
   console.log('POST /api/portfolios - Request body:', req.body);
   
-  const { username, bio, accentColor, avatarUrl, githubUsername } = req.body;
+  const { username, bio, accentColor, avatarUrl, githubUsername, discordId } = req.body;
 
   // Validate username
   if (!username || !USERNAME_REGEX.test(username)) {
@@ -448,7 +448,8 @@ app.post('/api/portfolios', (req, res) => {
       accentColor: accentColor || '#9082FA',
       avatarUrl: avatarUrl || '',
       githubUsername: githubUsername || '',
-      discordConnected: false,
+      discordConnected: !!discordId,
+      discordId: discordId || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

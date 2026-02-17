@@ -48,6 +48,7 @@ export default function CreatePortfolio() {
           accentColor,
           avatarUrl: user.avatar_url || "",
           githubUsername: profile?.github_username || "",
+          discordId: user.id || "",
         }),
       });
 

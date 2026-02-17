@@ -82,8 +82,9 @@ export default function Settings() {
       <div className="sticky top-0 z-50 backdrop-blur-sm bg-background/80 border-b border-border">
         <div className="max-w-2xl mx-auto px-6 py-4 flex items-center gap-4">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate(`/${user?.username || ''}`)}
             className="p-2 rounded-lg hover:bg-secondary transition-colors"
+            title="Back to profile"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
