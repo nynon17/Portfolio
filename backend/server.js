@@ -365,6 +365,52 @@ app.post('/api/profile', async (req, res) => {
   }
 });
 
+// ============================================================
+// PORTFOLIO ENDPOINTS (in-memory storage)
+// ============================================================
+const portfolios = new Map();
+
+// POST /api/portfolio — create a portfolio
+app.post('/api/portfolio', (req, res) => {
+  const { username, bio, accentColor, avatarUrl } = req.body;
+
+  if (!username || typeof username !== 'string') {
+    return res.status(400).json({ error: 'Username is required' });
+  }
+
+  const trimmed = username.trim();
+  if (trimmed.length === 0 || trimmed.length > 32) {
+    return res.status(400).json({ error: 'Username must be 1-32 characters' });
+  }
+
+  if (portfolios.has(trimmed.toLowerCase())) {
+    return res.status(409).json({ error: 'Username already taken' });
+  }
+
+  const portfolio = {
+    username: trimmed,
+    bio: typeof bio === 'string' ? bio.slice(0, 200) : '',
+    accentColor: typeof accentColor === 'string' ? accentColor.slice(0, 9) : '#9082FA',
+    avatarUrl: typeof avatarUrl === 'string' ? avatarUrl.slice(0, 500) : undefined,
+    createdAt: new Date().toISOString(),
+  };
+
+  portfolios.set(trimmed.toLowerCase(), portfolio);
+  res.status(201).json(portfolio);
+});
+
+// GET /api/portfolio/:username — read a portfolio
+app.get('/api/portfolio/:username', (req, res) => {
+  const key = req.params.username.toLowerCase();
+  const portfolio = portfolios.get(key);
+
+  if (!portfolio) {
+    return res.status(404).json({ error: 'Portfolio not found' });
+  }
+
+  res.json(portfolio);
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
