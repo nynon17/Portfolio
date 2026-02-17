@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDiscordAuth } from '@/hooks/useDiscordAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, Github, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Github, Loader2, Palette } from 'lucide-react';
 import { toast } from 'sonner';
+import AppearanceSettings from '@/components/AppearanceSettings';
 
 const BACKEND_URL = 'http://localhost:3001';
 
@@ -14,6 +15,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const toastShownRef = useRef(false);
+  const [activeTab, setActiveTab] = useState<'account' | 'appearance'>('account');
   
   const [bio, setBio] = useState('');
   const [bioLoading, setBioLoading] = useState(true);
@@ -131,10 +133,37 @@ export default function Settings() {
           </button>
           <h1 className="text-xl font-bold">Settings</h1>
         </div>
+        {/* Tabs */}
+        <div className="max-w-2xl mx-auto px-6 flex gap-1">
+          <button
+            onClick={() => setActiveTab('account')}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === 'account'
+                ? 'text-foreground border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Account
+          </button>
+          <button
+            onClick={() => setActiveTab('appearance')}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors flex items-center gap-1.5 ${
+              activeTab === 'appearance'
+                ? 'text-foreground border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Palette className="w-4 h-4" />
+            Appearance
+          </button>
+        </div>
       </div>
 
       {/* Content */}
       <div className="max-w-2xl mx-auto px-6 py-12">
+        {activeTab === 'appearance' ? (
+          <AppearanceSettings />
+        ) : (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -230,6 +259,7 @@ export default function Settings() {
             )}
           </div>
         </motion.div>
+        )}
       </div>
     </div>
   );
