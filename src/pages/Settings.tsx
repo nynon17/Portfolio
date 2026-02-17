@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDiscordAuth } from '@/hooks/useDiscordAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, Github } from 'lucide-react';
+import { ArrowLeft, Check, Github, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BACKEND_URL = 'http://localhost:3001';
@@ -14,6 +14,23 @@ export default function Settings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const toastShownRef = useRef(false);
+  
+  const [bio, setBio] = useState('');
+  const [bioLoading, setBioLoading] = useState(true);
+  const [bioSaving, setBioSaving] = useState(false);
+
+  // Load current bio from portfolio
+  useEffect(() => {
+    if (!user) return;
+    
+    fetch(`${BACKEND_URL}/api/portfolios/${user.username}`)
+      .then(res => res.json())
+      .then(data => {
+        setBio(data.bio || '');
+        setBioLoading(false);
+      })
+      .catch(() => setBioLoading(false));
+  }, [user]);
 
   useEffect(() => {
     // Only show toast once
@@ -35,6 +52,30 @@ export default function Settings() {
       setSearchParams({});
     }
   }, [searchParams, refetch, setSearchParams]);
+
+  const saveBio = async () => {
+    if (!user) return;
+    
+    setBioSaving(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/portfolios/${user.username}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bio: bio.trim() }),
+      });
+
+      if (res.ok) {
+        toast.success('Bio updated successfully!');
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to update bio');
+      }
+    } catch {
+      toast.error('Failed to update bio');
+    } finally {
+      setBioSaving(false);
+    }
+  };
 
   // Show loading state
   if (userLoading) {
@@ -115,6 +156,40 @@ export default function Settings() {
                 <p className="text-sm text-muted-foreground">@{user.username}</p>
               </div>
             </div>
+          </div>
+
+          {/* Bio Editor */}
+          <div className="glass-card p-6">
+            <h2 className="text-lg font-semibold mb-4">Bio</h2>
+            {bioLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Tell people about yourself..."
+                  maxLength={160}
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl glass-card bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow resize-none"
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {bio.length}/160 characters
+                  </p>
+                  <button
+                    onClick={saveBio}
+                    disabled={bioSaving}
+                    className="px-4 py-2 rounded-lg accent-gradient text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2"
+                  >
+                    {bioSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {bioSaving ? 'Saving...' : 'Save Bio'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* GitHub Connection */}

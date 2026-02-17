@@ -190,23 +190,7 @@ export default function PortfolioView() {
             </motion.div>
           )}
 
-          {/* View Projects button */}
-          {data.githubUsername && repos.length > 0 && (
-            <motion.div
-              className="flex gap-4 mt-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <button
-                onClick={scrollToProjects}
-                className="px-6 py-3 rounded-xl accent-gradient text-primary-foreground font-medium hover:opacity-90 transition-all hover:scale-105 active:scale-95"
-              >
-                View Projects
-              </button>
-            </motion.div>
-          )}
-
+       
           {/* Scroll indicator */}
           {data.githubUsername && repos.length > 0 && (
             <motion.div
