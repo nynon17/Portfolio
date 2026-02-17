@@ -1,105 +1,258 @@
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import type { ThemeConfig } from '@/contexts/ThemeContext';
 
-export interface PortfolioDraft {
+interface PreviewProps {
   username: string;
-  displayName?: string;
   bio: string;
-  accentColor: string;
-  avatarUrl: string;
-  discordHandle?: string;
-  githubUsername?: string;
+  avatarUrl?: string;
+  theme: ThemeConfig;
 }
 
-const DEFAULT_AVATAR = "https://api.dicebear.com/9.x/notionists/svg?seed=Felix";
+export default function PortfolioPreview({ username, bio, avatarUrl, theme }: PreviewProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const targetPosRef = useRef({ x: 50, y: 50 });
+  const rafRef = useRef<number>();
 
-export default function PortfolioPreview({ draft }: { draft: PortfolioDraft }) {
-  const accent = draft.accentColor || "#9082FA";
-  const avatar = draft.avatarUrl?.trim() || DEFAULT_AVATAR;
-  const headline = draft.displayName?.trim() || draft.username || "username";
+  // Smooth mouse tracking with lerp
+  useEffect(() => {
+    if (!theme.proMode || !theme.proEffects.mouseGlow) return;
+    if (window.matchMedia('(pointer: coarse)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!wrapperRef.current) return;
+      const rect = wrapperRef.current.getBoundingClientRect();
+      
+      // Calculate relative position (0-100%)
+      const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+      
+      targetPosRef.current = { x, y };
+    };
+
+    // Smooth animation loop with lerp
+    const animate = () => {
+      setMousePos(prev => ({
+        x: prev.x + (targetPosRef.current.x - prev.x) * 0.12,
+        y: prev.y + (targetPosRef.current.y - prev.y) * 0.12,
+      }));
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    rafRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [theme.proMode, theme.proEffects.mouseGlow]);
+
+  // Particle count based on performance + area scaling
+  const baseCount = theme.performance === 'low' ? 20 : theme.performance === 'high' ? 70 : 40;
+  const particleCount = baseCount;
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden glass-card p-1">
-      {/* Inner frame */}
-      <div className="relative rounded-xl overflow-hidden bg-background min-h-[480px] flex flex-col">
-        {/* Accent glow bg */}
-        <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              background: `radial-gradient(ellipse at 30% 20%, ${accent}30 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, ${accent}18 0%, transparent 50%)`,
-            }}
-          />
-          <div className="absolute inset-0 bg-grid opacity-20" />
+    <div
+      ref={wrapperRef}
+      className="relative w-full h-full overflow-hidden rounded-xl border border-border"
+      style={{
+        '--accent': theme.accentColor,
+        '--glass-blur': `${theme.blur}px`,
+        '--glow-opacity': theme.glow ? '1' : '0',
+        background: theme.backgroundType === 'solid' 
+          ? theme.backgroundValue
+          : theme.backgroundType === 'gradient'
+          ? theme.backgroundValue
+          : `url(${theme.backgroundValue}) center/cover`,
+      } as React.CSSProperties}
+    >
+      {/* Debug Panel */}
+      <details className="absolute top-2 left-2 z-50 text-xs bg-black/80 text-white p-2 rounded max-w-[200px]">
+        <summary className="cursor-pointer">Debug</summary>
+        <div className="mt-2 space-y-1 font-mono">
+          <div>BG: {theme.backgroundType}</div>
+          <div>Blur: {theme.blur}px</div>
+          <div>Glow: {theme.glow ? 'ON' : 'OFF'}</div>
+          <div>Anim: {theme.animations ? 'ON' : 'OFF'}</div>
+          <div>ProMode: {theme.proMode ? 'ON' : 'OFF'}</div>
+          {theme.proMode && (
+            <>
+              <div>Mesh: {theme.proEffects.animatedMeshGradient ? 'ON' : 'OFF'}</div>
+              <div>Particles: {theme.proEffects.particles ? 'ON' : 'OFF'}</div>
+              <div>MouseGlow: {theme.proEffects.mouseGlow ? 'ON' : 'OFF'}</div>
+              <div>Noise: {theme.proEffects.noiseOverlay ? 'ON' : 'OFF'}</div>
+              <div>Vignette: {theme.proEffects.vignette ? 'ON' : 'OFF'}</div>
+            </>
+          )}
         </div>
+      </details>
 
-        {/* Content */}
-        <div className="flex-1 flex items-center justify-center px-6 py-12">
-          <motion.div
-            className="flex flex-col items-center gap-5 text-center max-w-sm mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {/* Avatar */}
-            <div className="w-24 h-24 rounded-full overflow-hidden glass-card glow-border p-1">
+      {/* Pro Background Effects Layer */}
+      {theme.proMode && (
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+          {/* Animated Mesh Gradient */}
+          {theme.proEffects.animatedMeshGradient && (
+            <div
+              className="absolute inset-0 opacity-30"
+              style={{
+                background: `
+                  radial-gradient(at 20% 50%, ${theme.accentColor}40 0px, transparent 50%),
+                  radial-gradient(at 80% 20%, ${theme.accentColor}30 0px, transparent 50%),
+                  radial-gradient(at 50% 80%, ${theme.accentColor}25 0px, transparent 50%)
+                `,
+                backgroundSize: '200% 200%',
+                animation: theme.animations ? 'mesh-movement 12s ease infinite' : 'none',
+              }}
+            />
+          )}
+
+          {/* Particles */}
+          {theme.proEffects.particles && !window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && (
+            <div className="absolute inset-0">
+              {[...Array(particleCount)].map((_, i) => {
+                const speed = Math.random() * 15 + 15; // 15-30s
+                const xOffset = (Math.random() - 0.5) * 100; // -50 to 50px
+                return (
+                  <div
+                    key={i}
+                    className="absolute w-1 h-1 rounded-full"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `${100 + Math.random() * 10}%`, // Start below viewport
+                      background: theme.accentColor,
+                      opacity: Math.random() * 0.3 + 0.1,
+                      animation: theme.animations 
+                        ? `particle-float ${speed}s linear infinite`
+                        : 'none',
+                      animationDelay: `${-Math.random() * speed}s`, // Random start position
+                      '--x-offset': `${xOffset}px`,
+                    } as React.CSSProperties}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Mouse Glow */}
+          {theme.proEffects.mouseGlow && !window.matchMedia('(pointer: coarse)').matches && (
+            <div
+              className="absolute w-[400px] h-[400px] rounded-full"
+              style={{
+                left: `${mousePos.x}%`,
+                top: `${mousePos.y}%`,
+                transform: 'translate(-50%, -50%)',
+                background: `radial-gradient(circle, ${theme.accentColor}30 0%, transparent 60%)`,
+                filter: 'blur(60px)',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+
+          {/* Noise Overlay */}
+          {theme.proEffects.noiseOverlay && (
+            <div
+              className="absolute inset-0 mix-blend-overlay"
+              style={{
+                opacity: 0.04,
+                backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' /%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
+              }}
+            />
+          )}
+
+          {/* Vignette */}
+          {theme.proEffects.vignette && (
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)',
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Content Layer */}
+      <div className="relative flex flex-col items-center justify-center min-h-full p-8" style={{ zIndex: 10 }}>
+        {/* Avatar */}
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: theme.animations ? 0.6 : 0, delay: theme.animations ? 0.1 : 0 }}
+          className="mb-4"
+        >
+          {avatarUrl ? (
+            <div 
+              className="w-20 h-20 rounded-full overflow-hidden border-2"
+              style={{
+                borderColor: theme.accentColor,
+                boxShadow: theme.glow 
+                  ? `0 0 20px ${theme.accentColor}80, 0 0 40px ${theme.accentColor}40`
+                  : 'none',
+              }}
+            >
               <img
-                src={avatar}
-                alt={headline}
-                className="w-full h-full rounded-full object-cover bg-secondary"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
-                }}
+                src={avatarUrl}
+                alt={username}
+                className="w-full h-full object-cover bg-secondary"
               />
             </div>
+          ) : (
+            <div 
+              className="w-20 h-20 rounded-full bg-secondary/50"
+              style={{
+                borderColor: theme.accentColor,
+                boxShadow: theme.glow 
+                  ? `0 0 20px ${theme.accentColor}80`
+                  : 'none',
+              }}
+            />
+          )}
+        </motion.div>
 
-            {/* Name */}
-            <h1 className="text-4xl font-bold tracking-tight">
-              <span
-                style={{
-                  background: `linear-gradient(135deg, ${accent}, ${accent}aa)`,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
-                {headline}
-              </span>
-            </h1>
+        {/* Username - FULL COLOR */}
+        <motion.h1
+          className="text-4xl font-bold tracking-tight mb-3"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: theme.animations ? 0.6 : 0, delay: theme.animations ? 0.2 : 0 }}
+          style={{ color: theme.accentColor }}
+        >
+          {username || 'Username'}
+        </motion.h1>
 
-            {/* Bio */}
-            {draft.bio?.trim() ? (
-              <p className="text-base text-muted-foreground max-w-xs text-balance">
-                {draft.bio}
-              </p>
-            ) : (
-              <p className="text-base text-muted-foreground/40 italic">
-                Your bio will appear here…
-              </p>
-            )}
+        {/* Bio */}
+        {bio && (
+          <motion.p
+            className="text-sm text-muted-foreground text-center max-w-xs mb-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: theme.animations ? 0.6 : 0, delay: theme.animations ? 0.3 : 0 }}
+          >
+            {bio}
+          </motion.p>
+        )}
 
-            {/* Social Badges */}
-            {(draft.discordHandle || draft.githubUsername) && (
-              <div className="flex flex-wrap gap-2 mt-1 justify-center">
-                {draft.discordHandle?.trim() && (
-                  <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-card text-sm">
-                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
-                    </svg>
-                    <span className="text-muted-foreground">{draft.discordHandle}</span>
-                  </span>
-                )}
-                {draft.githubUsername?.trim() && (
-                  <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-card text-sm">
-                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-                    </svg>
-                    <span className="text-muted-foreground">@{draft.githubUsername}</span>
-                  </span>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </div>
+        {/* Sample Glass Card */}
+        <motion.div
+          className="mt-4 px-6 py-3 rounded-xl border"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: theme.animations ? 0.6 : 0, delay: theme.animations ? 0.4 : 0 }}
+          style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: `blur(${theme.blur}px)`,
+            WebkitBackdropFilter: `blur(${theme.blur}px)`,
+            boxShadow: theme.glow 
+              ? `0 0 20px ${theme.accentColor}40, 0 0 40px ${theme.accentColor}20`
+              : 'none',
+          }}
+        >
+          <p className="text-xs text-muted-foreground">Sample Card</p>
+        </motion.div>
       </div>
     </div>
   );

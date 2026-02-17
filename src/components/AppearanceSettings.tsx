@@ -1,6 +1,8 @@
 import { useTheme, PRESETS, type ThemePreset, type ProEffects } from '@/contexts/ThemeContext';
 import { motion } from 'framer-motion';
 import { Sparkles, Zap, Eye, Waves, MousePointer, Layers, Mountain } from 'lucide-react';
+import PortfolioPreview from './PortfolioPreview';
+import { useDiscordAuth } from '@/hooks/useDiscordAuth';
 
 const PRESET_META: { key: ThemePreset; label: string; desc: string }[] = [
   { key: 'aurora', label: 'Aurora', desc: 'Animated gradient glow' },
@@ -21,42 +23,55 @@ const PRO_EFFECTS: { key: keyof ProEffects; label: string; icon: typeof Sparkles
 
 export default function AppearanceSettings() {
   const { theme, updateTheme, updateProEffects, applyPreset } = useTheme();
+  const { user } = useDiscordAuth();
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-8"
-    >
+    <div className="grid lg:grid-cols-2 gap-6">
+      {/* Live Preview */}
+      <div className="lg:sticky lg:top-20 h-[500px] lg:h-[600px]">
+        <PortfolioPreview
+          username={user?.username || 'Username'}
+          bio="Sample bio text for preview"
+          avatarUrl={user?.avatar_url}
+          theme={theme}
+        />
+      </div>
+
+      {/* Settings Form */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-8"
+      >
       {/* ── Presets ─────────────────────────── */}
       <div className="glass-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Theme Preset</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <h2 className="text-lg font-semibold mb-6">Theme Preset</h2>
+        <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
           {PRESET_META.map(({ key, label, desc }) => (
             <button
               key={key}
               onClick={() => applyPreset(key)}
-              className={`p-4 rounded-xl text-left transition-colors border ${
+              className={`p-6 rounded-xl text-left transition-colors border min-h-[120px] flex flex-col justify-center ${
                 theme.preset === key
                   ? 'border-primary bg-primary/10'
                   : 'border-border hover:border-primary/40 bg-transparent'
               }`}
             >
-              <p className="font-medium text-sm">{label}</p>
-              <p className="text-xs text-muted-foreground mt-1">{desc}</p>
+              <p className="font-semibold text-lg mb-2">{label}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
             </button>
           ))}
           {/* Custom */}
           <button
             onClick={() => updateTheme({ preset: 'custom' })}
-            className={`p-4 rounded-xl text-left transition-colors border ${
+            className={`p-6 rounded-xl text-left transition-colors border min-h-[120px] flex flex-col justify-center ${
               theme.preset === 'custom'
                 ? 'border-primary bg-primary/10'
                 : 'border-border hover:border-primary/40 bg-transparent'
             }`}
           >
-            <p className="font-medium text-sm">Custom</p>
-            <p className="text-xs text-muted-foreground mt-1">Your own settings</p>
+            <p className="font-semibold text-lg mb-2">Custom</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">Your own settings</p>
           </button>
         </div>
       </div>
@@ -201,7 +216,8 @@ export default function AppearanceSettings() {
           ))}
         </div>
       </div>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }
 

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProBackground from "@/components/ProBackground";
+import GlobalThemeWrapper from "@/components/GlobalThemeWrapper";
 import Landing from "./pages/Landing";
 import CreatePortfolio from "./pages/CreatePortfolio";
 import PortfolioView from "./pages/PortfolioView";
@@ -17,20 +18,22 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <ProBackground />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/create" element={<CreatePortfolio />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/:username" element={<PortfolioView />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <GlobalThemeWrapper>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <ProBackground />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/create" element={<CreatePortfolio />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/:username" element={<PortfolioView />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </GlobalThemeWrapper>
     </ThemeProvider>
   </QueryClientProvider>
 );

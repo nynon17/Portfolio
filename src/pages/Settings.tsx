@@ -20,6 +20,7 @@ export default function Settings() {
   const [bio, setBio] = useState('');
   const [bioLoading, setBioLoading] = useState(true);
   const [bioSaving, setBioSaving] = useState(false);
+  const [themeSaving, setThemeSaving] = useState(false);
 
   // Load current bio from portfolio
   useEffect(() => {
@@ -76,6 +77,43 @@ export default function Settings() {
       toast.error('Failed to update bio');
     } finally {
       setBioSaving(false);
+    }
+  };
+
+  const saveTheme = async () => {
+    if (!user) return;
+    
+    // Get current theme from localStorage
+    const themeStr = localStorage.getItem('portfolio-theme');
+    if (!themeStr) {
+      toast.error('No theme to save');
+      return;
+    }
+
+    setThemeSaving(true);
+    try {
+      const theme = JSON.parse(themeStr);
+      console.log('[Settings] Saving theme:', theme);
+      
+      const res = await fetch(`${BACKEND_URL}/api/portfolios/${user.username}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme }),
+      });
+
+      if (res.ok) {
+        console.log('[Settings] Theme saved successfully');
+        toast.success('Theme saved to portfolio! Visit your profile to see changes.');
+      } else {
+        const data = await res.json();
+        console.error('[Settings] Save failed:', data);
+        toast.error(data.error || 'Failed to save theme');
+      }
+    } catch (err) {
+      console.error('[Settings] Save error:', err);
+      toast.error('Failed to save theme');
+    } finally {
+      setThemeSaving(false);
     }
   };
 
@@ -162,7 +200,23 @@ export default function Settings() {
       {/* Content */}
       <div className="max-w-2xl mx-auto px-6 py-12">
         {activeTab === 'appearance' ? (
-          <AppearanceSettings />
+          <div className="space-y-6">
+            <AppearanceSettings />
+            {/* Save Theme Button */}
+            <div className="glass-card p-6">
+              <button
+                onClick={saveTheme}
+                disabled={themeSaving}
+                className="w-full px-6 py-3 rounded-xl accent-gradient text-primary-foreground font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {themeSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {themeSaving ? 'Saving Theme...' : 'Save Theme to Portfolio'}
+              </button>
+              <p className="text-xs text-muted-foreground mt-3 text-center">
+                Save your customizations to make them visible on your public portfolio
+              </p>
+            </div>
+          </div>
         ) : (
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -494,7 +494,7 @@ app.get('/api/portfolios/:username', (req, res) => {
 // PUT /api/portfolios/:username — update a portfolio
 app.put('/api/portfolios/:username', (req, res) => {
   const { username } = req.params;
-  const { bio, accentColor, avatarUrl, githubUsername } = req.body;
+  const { bio, accentColor, avatarUrl, githubUsername, theme } = req.body;
   console.log('PUT /api/portfolios/:username -', username);
 
   // Validate bio
@@ -526,6 +526,7 @@ app.put('/api/portfolios/:username', (req, res) => {
       accentColor: accentColor || portfolios[key].accentColor,
       avatarUrl: avatarUrl !== undefined ? avatarUrl : portfolios[key].avatarUrl,
       githubUsername: githubUsername !== undefined ? githubUsername : portfolios[key].githubUsername,
+      theme: theme !== undefined ? theme : portfolios[key].theme,
       updatedAt: new Date().toISOString(),
     };
 

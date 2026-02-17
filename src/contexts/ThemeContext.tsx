@@ -110,6 +110,7 @@ const DEFAULT_THEME: ThemeConfig = {
 };
 
 const STORAGE_KEY = 'portfolio-theme';
+const BACKEND_URL = 'http://localhost:3001';
 
 function loadTheme(): ThemeConfig {
   try {
@@ -123,6 +124,19 @@ function saveTheme(t: ThemeConfig) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(t));
   } catch {}
+}
+
+// Save theme to backend
+async function saveThemeToBackend(username: string, theme: ThemeConfig) {
+  try {
+    await fetch(`${BACKEND_URL}/api/portfolios/${username}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme }),
+    });
+  } catch (err) {
+    console.error('Failed to save theme to backend:', err);
+  }
 }
 
 // ── Hex → HSL helper ────────────────────────────────────
@@ -186,30 +200,57 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeConfig>(loadTheme);
+  const [username, setUsername] = useState<string | null>(null);
+
+  // Load username from Discord auth
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/discord/me`, { credentials: 'include' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.username) {
+          setUsername(data.username);
+          // Load theme from portfolio
+          return fetch(`${BACKEND_URL}/api/portfolios/${data.username}`);
+        }
+      })
+      .then(res => res?.ok ? res.json() : null)
+      .then(portfolio => {
+        if (portfolio?.theme) {
+          const mergedTheme = { ...DEFAULT_THEME, ...portfolio.theme };
+          setThemeState(mergedTheme);
+          saveTheme(mergedTheme);
+          applyCSSVars(mergedTheme);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const setTheme = useCallback((t: ThemeConfig) => {
     setThemeState(t);
     saveTheme(t);
     applyCSSVars(t);
-  }, []);
+    if (username) saveThemeToBackend(username, t);
+  }, [username]);
 
   const updateTheme = useCallback((partial: Partial<ThemeConfig>) => {
     setThemeState(prev => {
       const next = { ...prev, ...partial };
       saveTheme(next);
       applyCSSVars(next);
+      if (username) saveThemeToBackend(username, next);
       return next;
     });
-  }, []);
+  }, [username]);
 
   const updateProEffects = useCallback((partial: Partial<ProEffects>) => {
     setThemeState(prev => {
       const next = { ...prev, proEffects: { ...prev.proEffects, ...partial } };
       saveTheme(next);
       applyCSSVars(next);
+      if (username) saveThemeToBackend(username, next);
       return next;
     });
-  }, []);
+  }, [username]);
 
   const applyPreset = useCallback((preset: ThemePreset) => {
     setThemeState(prev => {
@@ -222,9 +263,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       };
       saveTheme(next);
       applyCSSVars(next);
+      if (username) saveThemeToBackend(username, next);
       return next;
     });
-  }, []);
+  }, [username]);
 
   useEffect(() => {
     applyCSSVars(theme);
