@@ -9,7 +9,7 @@ export const GITHUB_USERNAME = "nynon17";
 export const DISPLAY_NAME = "Danon30cm";
 
 /** Your one-line tagline */
-export const TAGLINE = "Developer · Designer · Creator";
+export const TAGLINE = "";
 
 /** Avatar URL (replace with your own image URL or import) */
 export const AVATAR_URL = "https://cdn.discordapp.com/avatars/654362892313034783/980f069f2a5b5bf13623e532567d5f33.png?size=512";

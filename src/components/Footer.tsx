@@ -2,7 +2,7 @@ import { GITHUB_LINK, DISCORD_LINK, DISPLAY_NAME } from "@/config";
 
 export default function Footer() {
   return (
-    <footer className="py-12 px-6 border-t border-border">
+    <footer className="py-12 px-6 border-t relative border-border">
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">
           © {new Date().getFullYear()} {DISPLAY_NAME}

@@ -88,12 +88,13 @@
 
   html {
     scroll-behavior: smooth;
+    background-color: #000000;
   }
 
   body {
     @apply text-foreground font-sans antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: var(--bg-color, hsl(var(--background)));
+    background-color: #000000;
     min-height: 100vh;
   }
 }
@@ -121,7 +122,7 @@
   }
 
   .accent-text-gradient {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(260 80% 80%));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(255, 42%, 44%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

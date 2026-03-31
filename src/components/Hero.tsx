@@ -2,12 +2,13 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { DISPLAY_NAME, TAGLINE, AVATAR_URL, DISCORD_LINK, DISCORD_HANDLE, GITHUB_USERNAME, GITHUB_LINK } from "@/config";
 import { ChevronDown } from "lucide-react";
+import NeuralBackground from "@/components/ui/flow-field-background";
 
 export default function Hero() {
   const [introPhase, setIntroPhase] = useState<"playing" | "done">("playing");
 
   useEffect(() => {
-    const doneTimer = setTimeout(() => setIntroPhase("done"), 1800);
+    const doneTimer = setTimeout(() => setIntroPhase("done"), 900);
     return () => { clearTimeout(doneTimer); };
   }, []);
 
@@ -17,21 +18,18 @@ export default function Hero() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 -z-10">
-        <div
-          className="absolute inset-0 opacity-30 animate-gradient-shift"
-          style={{
-            background: "radial-gradient(ellipse at 30% 20%, hsl(247 93% 74% / 0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, hsl(260 80% 65% / 0.1) 0%, transparent 50%)",
-            backgroundSize: "200% 200%",
-          }}
-        />
-        <div className="absolute inset-0 bg-grid opacity-30" />
-      </div>
+      {/* Flow field particle background */}
+      <NeuralBackground
+        color="#818cf8"
+        trailOpacity={0.1}
+        particleCount={600}
+        speed={0.8}
+        className="!absolute inset-0 z-0"
+      />
 
       {/* Main content */}
       <motion.div
-        className="flex flex-col items-center gap-6 px-6 text-center max-w-4xl mx-auto"
+        className="relative z-10 flex flex-col items-center gap-6 px-6 text-center max-w-4xl mx-auto"
         initial={{ opacity: 0, y: 30 }}
         animate={introPhase === "done" ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}

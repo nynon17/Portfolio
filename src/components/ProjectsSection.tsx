@@ -20,7 +20,7 @@ export default function ProjectsSection() {
 
   return (
     <section id="projects" className="py-24 px-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl relative mx-auto">
         <motion.h2
           className="text-3xl font-bold text-center mb-4"
           initial={{ opacity: 0, y: 20 }}
