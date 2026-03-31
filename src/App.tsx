@@ -6,11 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProBackground from "@/components/ProBackground";
 import GlobalThemeWrapper from "@/components/GlobalThemeWrapper";
-import Landing from "./pages/Landing";
-import CreatePortfolio from "./pages/CreatePortfolio";
-import PortfolioView from "./pages/PortfolioView";
-import Dashboard from "./pages/Dashboard";
-import Settings from "./pages/Settings";
+import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,11 +21,8 @@ const App = () => (
           <ProBackground />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/create" element={<CreatePortfolio />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/:username" element={<PortfolioView />} />
+              <Route path="/" element={<Index />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>

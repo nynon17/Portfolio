@@ -3,22 +3,22 @@
 // ============================================================
 
 /** Your GitHub username — repos will be fetched from this account */
-export const GITHUB_USERNAME = "YOUR_USERNAME";
+export const GITHUB_USERNAME = "nynon17";
 
 /** Your display name */
-export const DISPLAY_NAME = "Your Name";
+export const DISPLAY_NAME = "Danon30cm";
 
 /** Your one-line tagline */
 export const TAGLINE = "Developer · Designer · Creator";
 
 /** Avatar URL (replace with your own image URL or import) */
-export const AVATAR_URL = "https://api.dicebear.com/9.x/notionists/svg?seed=Felix";
+export const AVATAR_URL = "https://cdn.discordapp.com/avatars/654362892313034783/980f069f2a5b5bf13623e532567d5f33.png?size=512";
 
 /** Discord invite or profile link */
-export const DISCORD_LINK = "https://discord.comgit /users/654362892313034783";
+export const DISCORD_LINK = "https://discord.com/users/654362892313034783";
 
 /** Your Discord handle for copy-to-clipboard */
-export const DISCORD_HANDLE = "yourname#0000";
+export const DISCORD_HANDLE = "danon30cm";
 
 /** GitHub profile link */
 export const GITHUB_LINK = `https://github.com/${GITHUB_USERNAME}`;

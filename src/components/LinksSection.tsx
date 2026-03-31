@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { DISCORD_LINK, DISCORD_HANDLE, GITHUB_LINK } from "@/config";
 import { Copy, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { useDiscordAuth } from "@/hooks/useDiscordAuth";
 
 const discordIcon = (
   <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg">
@@ -17,17 +16,12 @@ const githubIcon = (
 );
 
 export default function LinksSection() {
-  const { user } = useDiscordAuth();
-
-  // Build links array with Discord OAuth data if available
   const links = [
     {
       label: "Discord",
       icon: discordIcon,
-      // Use Discord profile link if logged in, fallback to config
-      href: user ? `https://discord.com/users/${user.id}` : DISCORD_LINK,
-      // Use Discord username if logged in, fallback to config
-      copyValue: user ? user.username : DISCORD_HANDLE,
+      href: DISCORD_LINK,
+      copyValue: DISCORD_HANDLE,
       copyLabel: "Discord username copied!",
     },
     {

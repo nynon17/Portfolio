@@ -1,13 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useGithubRepos } from "@/hooks/useGithubRepos";
-import { useProfile } from "@/hooks/useProfile";
 import ProjectCard from "@/components/ProjectCard";
 import { Search, AlertCircle } from "lucide-react";
 
 export default function ProjectsSection() {
-  const { profile } = useProfile();
-  const { repos, loading, error } = useGithubRepos(profile?.github_username);
+  const { repos, loading, error } = useGithubRepos();
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
