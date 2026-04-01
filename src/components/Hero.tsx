@@ -29,7 +29,7 @@ export default function Hero() {
 
       {/* Main content */}
       <motion.div
-        className="relative z-10 flex flex-col items-center gap-6 px-6 text-center max-w-4xl mx-auto"
+        className="relative z-10 flex flex-col rounded-lg glass-card items-center gap-6 px-6 text-center max-w-4xl mx-auto"
         initial={{ opacity: 0, y: 30 }}
         animate={introPhase === "done" ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}

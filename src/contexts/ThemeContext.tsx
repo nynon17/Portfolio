@@ -112,11 +112,14 @@ const DEFAULT_THEME: ThemeConfig = {
 const STORAGE_KEY = 'portfolio-theme';
 
 function loadTheme(): ThemeConfig {
+  let theme = DEFAULT_THEME;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...DEFAULT_THEME, ...JSON.parse(raw) };
+    if (raw) theme = { ...DEFAULT_THEME, ...JSON.parse(raw) };
   } catch {}
-  return DEFAULT_THEME;
+  // Apply CSS vars synchronously on load (before first paint)
+  applyCSSVars(theme);
+  return theme;
 }
 
 function saveTheme(t: ThemeConfig) {
@@ -226,10 +229,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  useEffect(() => {
-    applyCSSVars(theme);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // CSS vars already applied synchronously in loadTheme(), no useEffect needed
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, updateTheme, updateProEffects, applyPreset }}>

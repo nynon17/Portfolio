@@ -1,13 +1,13 @@
 import { useEffect, useRef, memo } from 'react';
 import { useTheme, type PerformanceLevel } from '@/contexts/ThemeContext';
 
+// ── particles ──────────────────────────────
 function getParticleCount(perf: PerformanceLevel): number {
   if (perf === 'low') return 20;
   if (perf === 'high') return 70;
   return 40;
 }
 
-// ── Particles ───────────────────────────────────────────
 const Particles = memo(function Particles() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { theme } = useTheme();
@@ -16,60 +16,114 @@ const Particles = memo(function Particles() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+
+    const parent = canvas.parentElement;
+    if (!parent) return;
+
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let raf: number;
+    let raf = 0;
     let paused = false;
+    let width = 0;
+    let height = 0;
+    let particles: {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      r: number;
+      a: number;
+    }[] = [];
+
+    const createParticles = () => {
+      particles = Array.from({ length: count }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        r: Math.random() * 2 + 0.5,
+        a: Math.random() * 0.4 + 0.1,
+      }));
+    };
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+
+      width = parent.clientWidth;
+      height = parent.clientHeight;
+
+      canvas.width = Math.max(1, Math.floor(width * dpr));
+      canvas.height = Math.max(1, Math.floor(height * dpr));
+
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+
+      createParticles();
     };
-    resize();
-    window.addEventListener('resize', resize);
 
-    const particles = Array.from({ length: count }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      r: Math.random() * 2 + 0.5,
-      a: Math.random() * 0.4 + 0.1,
-    }));
-
-    const onVis = () => { paused = document.hidden; };
-    document.addEventListener('visibilitychange', onVis);
+    const onVis = () => {
+      paused = document.hidden;
+    };
 
     const draw = () => {
-      if (paused) { raf = requestAnimationFrame(draw); return; }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (paused) {
+        raf = requestAnimationFrame(draw);
+        return;
+      }
+
+      ctx.clearRect(0, 0, width, height);
+
       for (const p of particles) {
         p.x += p.vx;
         p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
+
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
+
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `${theme.accentColor}${Math.round(p.a * 255).toString(16).padStart(2, '0')}`;
+        ctx.fillStyle = `${theme.accentColor}${Math.round(p.a * 255)
+            .toString(16)
+            .padStart(2, "0")}`;
         ctx.fill();
       }
+
       raf = requestAnimationFrame(draw);
     };
-    raf = requestAnimationFrame(draw);
+
+    const ro = new ResizeObserver(() => {
+      resize();
+    });
+
+    const init = requestAnimationFrame(() => {
+      resize();
+      ro.observe(parent);
+      raf = requestAnimationFrame(draw);
+    });
+
+    document.addEventListener("visibilitychange", onVis);
 
     return () => {
+      cancelAnimationFrame(init);
       cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
-      document.removeEventListener('visibilitychange', onVis);
+      ro.disconnect();
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [count, theme.accentColor]);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />;
+  return (
+      <canvas
+          ref={canvasRef}
+          className="absolute inset-0 h-full w-full pointer-events-none"
+      />
+  );
 });
-
 // ── Animated Mesh Gradient ──────────────────────────────
 const MeshGradient = memo(function MeshGradient() {
   const { theme } = useTheme();
