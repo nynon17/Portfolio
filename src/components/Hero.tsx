@@ -29,7 +29,7 @@ export default function Hero() {
 
       {/* Main content */}
       <motion.div
-        className="relative z-10 flex flex-col rounded-lg glass-card items-center gap-6 px-6 text-center max-w-4xl mx-auto"
+        className="relative z-10 flex flex-col rounded-lg glass-card p-8 items-center gap-6 px-6 text-center max-w-4xl mx-auto"
         initial={{ opacity: 0, y: 30 }}
         animate={introPhase === "done" ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
@@ -125,7 +125,7 @@ export default function Hero() {
 
         {/* Scroll indicator */}
         <motion.div
-          className="absolute bottom-10 left-1/2 -translate-x-1/2"
+          className="absolute -bottom-20 left-1/2 -translate-x-1/2"
           initial={{ opacity: 0 }}
           animate={introPhase === "done" ? { opacity: 1 } : {}}
           transition={{ delay: 1, duration: 0.6 }}
