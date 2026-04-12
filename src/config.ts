@@ -15,7 +15,7 @@ export const TAGLINE = "";
 export const AVATAR_URL = "https://cdn.discordapp.com/avatars/654362892313034783/980f069f2a5b5bf13623e532567d5f33.png?size=512";
 
 /** Discord invite or profile link */
-export const DISCORD_LINK = "https://discord.com/users/654362892313034783";
+export const DISCORD_LINK = "https://discord.comgit /users/654362892313034783";
 
 /** Your Discord handle for copy-to-clipboard */
 export const DISCORD_HANDLE = "danon30cm";
